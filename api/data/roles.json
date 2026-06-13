@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "role_super_admin",
+      "name": "超级管理员",
+      "code": "super_admin",
+      "description": "拥有系统所有权限",
+      "permissions": [],
+      "isSystem": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "role_admin",
+      "name": "管理员",
+      "code": "admin",
+      "description": "系统管理员，负责用户和角色管理",
+      "permissions": [
+        "qrcode:view",
+        "qrcode:create",
+        "qrcode:edit",
+        "qrcode:delete",
+        "qrcode:export",
+        "qrcode:stats",
+        "role:manage",
+        "user:manage",
+        "policy:manage",
+        "audit:view",
+        "alert:manage",
+        "batch:manage",
+        "export:manage"
+      ],
+      "isSystem": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "role_editor",
+      "name": "编辑员",
+      "code": "editor",
+      "description": "可以创建和编辑二维码",
+      "permissions": [
+        "qrcode:view",
+        "qrcode:create",
+        "qrcode:edit",
+        "qrcode:export",
+        "qrcode:stats"
+      ],
+      "isSystem": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "role_viewer",
+      "name": "查看者",
+      "code": "viewer",
+      "description": "只能查看二维码",
+      "parentRoleId": null,
+      "permissions": [
+        "qrcode:view"
+      ],
+      "isSystem": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "role_senior_editor",
+      "name": "高级编辑员",
+      "code": "senior_editor",
+      "description": "继承编辑员权限，额外拥有删除权限",
+      "parentRoleId": "role_editor",
+      "permissions": [
+        "qrcode:delete",
+        "batch:manage"
+      ],
+      "isSystem": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "role_auditor",
+      "name": "审计员",
+      "code": "auditor",
+      "description": "可以查看审计日志和安全告警",
+      "permissions": [
+        "qrcode:view",
+        "qrcode:stats",
+        "audit:view",
+        "alert:manage"
+      ],
+      "isSystem": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}

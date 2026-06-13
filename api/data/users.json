@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "user_admin",
+      "username": "admin",
+      "email": "admin@example.com",
+      "passwordHash": "admin123",
+      "displayName": "系统管理员",
+      "roleIds": ["role_super_admin"],
+      "isActive": true,
+      "isSuperAdmin": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "user_editor",
+      "username": "editor",
+      "email": "editor@example.com",
+      "passwordHash": "editor123",
+      "displayName": "内容编辑",
+      "roleIds": ["role_editor"],
+      "isActive": true,
+      "isSuperAdmin": false,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "user_viewer",
+      "username": "viewer",
+      "email": "viewer@example.com",
+      "passwordHash": "viewer123",
+      "displayName": "普通用户",
+      "roleIds": ["role_viewer"],
+      "isActive": true,
+      "isSuperAdmin": false,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "user_senior_editor",
+      "username": "senior_editor",
+      "email": "senior@example.com",
+      "passwordHash": "senior123",
+      "displayName": "高级编辑",
+      "roleIds": ["role_senior_editor"],
+      "isActive": true,
+      "isSuperAdmin": false,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "user_auditor",
+      "username": "auditor",
+      "email": "auditor@example.com",
+      "passwordHash": "auditor123",
+      "displayName": "审计员",
+      "roleIds": ["role_auditor"],
+      "isActive": true,
+      "isSuperAdmin": false,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}

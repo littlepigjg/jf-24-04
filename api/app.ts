@@ -12,6 +12,11 @@ import qrcodesRoutes from './routes/qrcodes.js'
 import statsRoutes from './routes/stats.js'
 import batchRoutes from './routes/batch.js'
 import exportRoutes from './routes/export.js'
+import rolesRoutes from './routes/roles.js'
+import usersRoutes from './routes/users.js'
+import policiesRoutes from './routes/policies.js'
+import auditRoutes from './routes/audit.js'
+import alertsRoutes from './routes/alerts.js'
 import { RedirectService } from './services/RedirectService.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -43,6 +48,11 @@ app.use('/api/qrcodes', qrcodesRoutes)
 app.use('/api/stats', statsRoutes)
 app.use('/api/batch', batchRoutes)
 app.use('/api/export', exportRoutes)
+app.use('/api/roles', rolesRoutes)
+app.use('/api/users', usersRoutes)
+app.use('/api/policies', policiesRoutes)
+app.use('/api/audit', auditRoutes)
+app.use('/api/alerts', alertsRoutes)
 
 app.use(
   '/api/health',
