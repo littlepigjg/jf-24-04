@@ -73,6 +73,41 @@ class PermissionEngineServiceImpl {
     )
   }
 
+  private async detectAndReportBrokenChain(
+    userId: string,
+    user: User,
+    context?: { ip?: string; userAgent?: string }
+  ): Promise<void> {
+    if (user.isSuperAdmin) return
+    if (user.roleIds.length === 0) return
+
+    const chainStatus = await RoleHierarchyResolver.hasBrokenChain(user.roleIds)
+    if (!chainStatus.broken) return
+
+    const { SecurityAlertRepository } = await import(
+      '../repositories/SecurityAlertRepository.js'
+    )
+
+    await SecurityAlertRepository.incrementOrCreateAggregatedAlert(
+      'role_chain_broken',
+      userId,
+      context?.ip,
+      {
+        type: 'role_chain_broken',
+        severity: 'high',
+        status: 'new',
+        userId,
+        username: user.username,
+        ip: context?.ip,
+        userAgent: context?.userAgent,
+        resourceType: 'role',
+        resourceId: chainStatus.missingRoleIds.join(','),
+        action: 'role:inheritance',
+        reason: `Role chain broken: missing roles [${chainStatus.missingRoleIds.join(', ')}], affecting roles [${chainStatus.affectedRoleIds.join(', ')}]`,
+      }
+    )
+  }
+
   async checkPermission(
     userId: string,
     action: PermissionAction,
@@ -81,15 +116,19 @@ class PermissionEngineServiceImpl {
     resourceName?: string,
     context?: { ip?: string; userAgent?: string }
   ): Promise<PermissionCheckResult> {
-    const policyResult = await this.evaluatePolicies(
-      userId,
-      action,
-      resourceType,
-      resourceId,
-      context
-    )
+    const user = await UserRepository.getById(userId)
 
-    const effectivePermissions = await this.getUserEffectivePermissions(userId)
+    const policyResult = user
+      ? await this.evaluatePolicies(userId, action, resourceType, resourceId, context)
+      : { allow: false as const, reason: 'User not found' }
+
+    const effectivePermissions = user
+      ? await this.getUserEffectivePermissions(userId)
+      : []
+
+    if (user) {
+      await this.detectAndReportBrokenChain(userId, user, context)
+    }
 
     await AuditService.recordAuditLog(
       userId,

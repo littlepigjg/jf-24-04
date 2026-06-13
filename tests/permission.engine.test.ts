@@ -359,6 +359,163 @@ test('同优先级稳定性 - 不同优先级正确决策：allow 优先级 200 
   assertEqual(r.matchedPolicy?.id, allowId, '应匹配 allow 策略')
 })
 
+test('并发计数 - incrementOrCreateAggregatedAlert 原子累加不漏记', async () => {
+  const { SecurityAlertRepository } = await import('../api/repositories/SecurityAlertRepository.js')
+  const TEST_USER = `__virt_concurrent_${Date.now()}`
+  const TEST_IP = '10.0.0.200'
+  const CONCURRENCY = 30
+
+  const allBefore = await SecurityAlertRepository.getAll()
+  for (const a of allBefore) {
+    if (a.userId === TEST_USER) await SecurityAlertRepository.delete(a.id)
+  }
+
+  const promises: Promise<unknown>[] = []
+  for (let i = 0; i < CONCURRENCY; i++) {
+    promises.push(
+      SecurityAlertRepository.incrementOrCreateAggregatedAlert(
+        'permission_denied',
+        TEST_USER,
+        TEST_IP,
+        {
+          type: 'permission_denied',
+          severity: 'medium',
+          status: 'new',
+          userId: TEST_USER,
+          username: 'testuser',
+          ip: TEST_IP,
+          resourceType: 'qrcode',
+          resourceId: `qr_${i}`,
+          action: 'qrcode:view',
+          reason: `test deny ${i}`,
+        }
+      )
+    )
+  }
+  await Promise.all(promises)
+
+  const allAfter = await SecurityAlertRepository.getAll()
+  const matched = allAfter.filter(
+    (a) => a.userId === TEST_USER && a.type === 'permission_denied' && a.ip === TEST_IP
+  )
+
+  assertEqual(matched.length, 1, `并发 ${CONCURRENCY} 次后应只有 1 条聚合告警`)
+  assertEqual(matched[0].count, CONCURRENCY, `count 应准确等于 ${CONCURRENCY}，实际 ${matched[0].count}`)
+
+  for (const a of allAfter) {
+    if (a.userId === TEST_USER) await SecurityAlertRepository.delete(a.id)
+  }
+})
+
+test('角色删除保护 - 有子角色的角色不能被删除', async () => {
+  const { RoleRepository } = await import('../api/repositories/RoleRepository.js')
+  let threw = false
+  try {
+    await RoleRepository.delete('role_viewer')
+  } catch (err) {
+    threw = true
+    assert(
+      (err as Error).message.includes('child role'),
+      `错误信息应提到子角色，实际：${(err as Error).message}`
+    )
+  }
+  assert(threw, '删除有子角色的 role_viewer 应抛出错误')
+
+  const viewer = await RoleRepository.getById('role_viewer')
+  assert(viewer !== undefined, 'role_viewer 应仍然存在')
+})
+
+test('断链检测 - hasBrokenChain 能检测到缺失的父角色', async () => {
+  const { RoleRepository } = await import('../api/repositories/RoleRepository.js')
+  const brokenRoleId = `__test_broken_role_${Date.now()}`
+
+  const now = new Date().toISOString()
+  await RoleRepository.create({
+    id: brokenRoleId,
+    name: '断链测试角色',
+    code: `broken_test_${Date.now()}`,
+    description: '',
+    parentRoleId: '__nonexistent_parent_role__',
+    permissions: ['qrcode:view'],
+    isSystem: false,
+    createdAt: now,
+    updatedAt: now,
+  })
+
+  const chainStatus = await RoleHierarchyResolver.hasBrokenChain([brokenRoleId])
+  assert(chainStatus.broken, '应检测到断链')
+  assert(chainStatus.missingRoleIds.includes('__nonexistent_parent_role__'), '应列出缺失的父角色ID')
+  assert(chainStatus.affectedRoleIds.includes(brokenRoleId), '应列出受影响的角色')
+
+  await RoleRepository.delete(brokenRoleId)
+})
+
+test('断链告警 - 权限检查时断链会触发 role_chain_broken 告警', async () => {
+  const { RoleRepository } = await import('../api/repositories/RoleRepository.js')
+  const { UserRepository } = await import('../api/repositories/UserRepository.js')
+  const { SecurityAlertRepository } = await import('../api/repositories/SecurityAlertRepository.js')
+
+  const brokenRoleId = `__test_brk2_${Date.now()}`
+  const brokenUserId = `__test_brk_user_${Date.now()}`
+  const TEST_IP = '10.0.0.210'
+
+  const allAlertsBefore = await SecurityAlertRepository.getAll()
+  for (const a of allAlertsBefore) {
+    if (a.userId === brokenUserId) await SecurityAlertRepository.delete(a.id)
+  }
+
+  const now = new Date().toISOString()
+  await RoleRepository.create({
+    id: brokenRoleId,
+    name: '断链测试角色2',
+    code: `broken_test2_${Date.now()}`,
+    description: '',
+    parentRoleId: '__missing_parent_2__',
+    permissions: ['qrcode:view'],
+    isSystem: false,
+    createdAt: now,
+    updatedAt: now,
+  })
+  await UserRepository.create({
+    id: brokenUserId,
+    username: `broken_user_${Date.now()}`,
+    email: `broken_${Date.now()}@test.com`,
+    passwordHash: 'test123',
+    displayName: '断链测试用户',
+    roleIds: [brokenRoleId],
+    isActive: true,
+    isSuperAdmin: false,
+    createdAt: now,
+    updatedAt: now,
+  })
+
+  await PermissionEngineService.checkPermission(
+    brokenUserId,
+    'qrcode:view',
+    'qrcode',
+    undefined,
+    undefined,
+    { ip: TEST_IP }
+  )
+
+  const allAlertsAfter = await SecurityAlertRepository.getAll()
+  const brokenAlerts = allAlertsAfter.filter(
+    (a) => a.userId === brokenUserId && a.type === 'role_chain_broken' && a.ip === TEST_IP
+  )
+
+  assert(brokenAlerts.length >= 1, '应触发 role_chain_broken 告警')
+  assert(
+    brokenAlerts[0].reason?.includes('__missing_parent_2__'),
+    `告警原因应包含缺失角色ID，实际：${brokenAlerts[0].reason}`
+  )
+
+  await UserRepository.delete(brokenUserId)
+  await RoleRepository.delete(brokenRoleId)
+  for (const a of allAlertsAfter) {
+    if (a.userId === brokenUserId) await SecurityAlertRepository.delete(a.id)
+  }
+})
+
 async function main(): Promise<void> {
   console.log(`\n🚀 运行 ${testCases.length} 个测试用例...\n`)
   for (const [name, fn] of testCases) {

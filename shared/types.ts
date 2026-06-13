@@ -79,7 +79,7 @@ export type AlertStatus = 'new' | 'acknowledged' | 'resolved'
 
 export interface SecurityAlert {
   id: string
-  type: 'unauthorized_access' | 'permission_denied' | 'suspicious_activity' | 'brute_force' | 'policy_violation'
+  type: 'unauthorized_access' | 'permission_denied' | 'suspicious_activity' | 'brute_force' | 'policy_violation' | 'role_chain_broken'
   severity: AlertSeverity
   status: AlertStatus
   userId?: string
@@ -124,6 +124,8 @@ export interface PermissionDecision {
 export interface RoleWithHierarchy extends Role {
   inheritedRoles?: RoleWithHierarchy[]
   effectivePermissions: PermissionAction[]
+  brokenChain?: boolean
+  missingParentRoleId?: string
 }
 
 export interface QrCode {

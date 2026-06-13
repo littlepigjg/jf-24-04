@@ -1,26 +1,60 @@
 import { RoleRepository } from '../repositories/RoleRepository.js'
 import type { Role, RoleWithHierarchy, PermissionAction } from '../../shared/types.js'
 
+export interface HierarchyResolveResult {
+  hierarchy: RoleWithHierarchy | null
+  broken: boolean
+  missingParentRoleIds: string[]
+}
+
 class RoleHierarchyResolverImpl {
-  async getRoleHierarchy(roleId: string, visited?: Set<string>): Promise<RoleWithHierarchy | null> {
-    if (visited && visited.has(roleId)) return null
+  async getRoleHierarchy(
+    roleId: string,
+    visited?: Set<string>
+  ): Promise<RoleWithHierarchy | null> {
+    const result = await this.resolveHierarchyWithBrokenCheck(roleId, visited)
+    return result.hierarchy
+  }
+
+  async resolveHierarchyWithBrokenCheck(
+    roleId: string,
+    visited?: Set<string>
+  ): Promise<HierarchyResolveResult> {
+    if (visited && visited.has(roleId)) {
+      return { hierarchy: null, broken: false, missingParentRoleIds: [] }
+    }
     const nextVisited = new Set(visited)
     nextVisited.add(roleId)
 
     const role = await RoleRepository.getById(roleId)
-    if (!role) return null
+    if (!role) {
+      return { hierarchy: null, broken: true, missingParentRoleIds: [roleId] }
+    }
 
     const result: RoleWithHierarchy = {
       ...role,
       inheritedRoles: [],
       effectivePermissions: [...role.permissions],
+      brokenChain: false,
     }
 
+    let broken = false
+    const missingIds: string[] = []
+
     if (role.parentRoleId) {
-      const parent = await this.getRoleHierarchy(role.parentRoleId, nextVisited)
-      if (parent) {
-        result.inheritedRoles = [parent]
-        for (const perm of parent.effectivePermissions) {
+      const parentResult = await this.resolveHierarchyWithBrokenCheck(
+        role.parentRoleId,
+        nextVisited
+      )
+      if (parentResult.broken) {
+        broken = true
+        missingIds.push(...parentResult.missingParentRoleIds)
+        result.brokenChain = true
+        result.missingParentRoleId = role.parentRoleId
+      }
+      if (parentResult.hierarchy) {
+        result.inheritedRoles = [parentResult.hierarchy]
+        for (const perm of parentResult.hierarchy.effectivePermissions) {
           if (!result.effectivePermissions.includes(perm)) {
             result.effectivePermissions.push(perm)
           }
@@ -28,7 +62,7 @@ class RoleHierarchyResolverImpl {
       }
     }
 
-    return result
+    return { hierarchy: result, broken, missingParentRoleIds: missingIds }
   }
 
   async resolveAllRoleIds(directRoleIds: string[]): Promise<string[]> {
@@ -54,6 +88,29 @@ class RoleHierarchyResolverImpl {
 
     if (role.parentRoleId) {
       await this.collectRoleIdsRecursive(role.parentRoleId, collected, visited)
+    }
+  }
+
+  async hasBrokenChain(directRoleIds: string[]): Promise<{
+    broken: boolean
+    missingRoleIds: string[]
+    affectedRoleIds: string[]
+  }> {
+    const missingSet = new Set<string>()
+    const affectedSet = new Set<string>()
+
+    for (const roleId of directRoleIds) {
+      const result = await this.resolveHierarchyWithBrokenCheck(roleId)
+      if (result.broken) {
+        result.missingParentRoleIds.forEach((id) => missingSet.add(id))
+        affectedSet.add(roleId)
+      }
+    }
+
+    return {
+      broken: missingSet.size > 0,
+      missingRoleIds: Array.from(missingSet),
+      affectedRoleIds: Array.from(affectedSet),
     }
   }
 

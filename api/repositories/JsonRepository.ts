@@ -24,15 +24,15 @@ class LockQueue {
 }
 
 export class JsonRepository<T extends { id: string }> {
-  private filePath: string
-  private lock: LockQueue
+  protected filePath: string
+  protected lock: LockQueue
 
   constructor(filename: string) {
     this.filePath = path.join(DATA_DIR, filename)
     this.lock = new LockQueue()
   }
 
-  private async readFile(): Promise<JsonFile<T>> {
+  protected async readFile(): Promise<JsonFile<T>> {
     try {
       const data = await fs.readFile(this.filePath, 'utf-8')
       return JSON.parse(data) as JsonFile<T>
@@ -41,7 +41,7 @@ export class JsonRepository<T extends { id: string }> {
     }
   }
 
-  private async writeFile(data: JsonFile<T>): Promise<void> {
+  protected async writeFile(data: JsonFile<T>): Promise<void> {
     await fs.mkdir(path.dirname(this.filePath), { recursive: true })
     await fs.writeFile(this.filePath, JSON.stringify(data, null, 2), 'utf-8')
   }

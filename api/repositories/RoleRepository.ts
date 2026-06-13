@@ -21,6 +21,16 @@ class RoleRepositoryImpl extends JsonRepository<Role> {
   async findByParentId(parentRoleId: string): Promise<Role[]> {
     return this.findMany((r) => r.parentRoleId === parentRoleId)
   }
+
+  async delete(id: string): Promise<boolean> {
+    const children = await this.findChildren(id)
+    if (children.length > 0) {
+      throw new Error(
+        `Cannot delete role "${id}": it has ${children.length} child role(s) (${children.map((c) => c.code).join(', ')}). Reassign or delete children first.`
+      )
+    }
+    return super.delete(id)
+  }
 }
 
 export const RoleRepository = new RoleRepositoryImpl()

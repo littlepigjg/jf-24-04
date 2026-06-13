@@ -107,6 +107,52 @@ class SecurityAlertRepositoryImpl extends JsonRepository<SecurityAlert> {
     return null
   }
 
+  async incrementOrCreateAggregatedAlert(
+    type: SecurityAlert['type'],
+    userId: string | undefined,
+    ip: string | undefined,
+    createData: Omit<SecurityAlert, 'id' | 'count' | 'firstOccurrence' | 'lastOccurrence'> & {
+      count?: number
+    }
+  ): Promise<SecurityAlert> {
+    return this.lock.execute(async () => {
+      const now = new Date().toISOString()
+      const data = await this.readFile()
+      const index = data.items.findIndex((a) => {
+        if (a.type !== type) return false
+        if (a.status === 'resolved') return false
+        if (a.userId !== userId) return false
+        if (a.ip !== ip) return false
+        return true
+      })
+
+      if (index !== -1) {
+        const existing = data.items[index]
+        const updated: SecurityAlert = {
+          ...existing,
+          count: existing.count + 1,
+          lastOccurrence: now,
+          reason: createData.reason ?? existing.reason,
+        }
+        data.items[index] = updated
+        await this.writeFile(data)
+        return updated
+      }
+
+      const id = `alert_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      const alert: SecurityAlert = {
+        ...createData,
+        id,
+        count: createData.count ?? 1,
+        firstOccurrence: now,
+        lastOccurrence: now,
+      }
+      data.items.unshift(alert)
+      await this.writeFile(data)
+      return alert
+    })
+  }
+
   async createAlert(data: Omit<SecurityAlert, 'id'>): Promise<SecurityAlert> {
     const id = `alert_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     const alert: SecurityAlert = {

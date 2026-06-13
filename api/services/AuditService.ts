@@ -44,28 +44,12 @@ class AuditServiceImpl {
       count?: number
     }
   ): Promise<SecurityAlert> {
-    const existing = await SecurityAlertRepository.findAggregatedAlert(
+    return SecurityAlertRepository.incrementOrCreateAggregatedAlert(
       alert.type,
       alert.userId,
-      alert.ip
+      alert.ip,
+      alert
     )
-
-    if (existing) {
-      const updated = await SecurityAlertRepository.update(existing.id, {
-        count: existing.count + 1,
-        lastOccurrence: new Date().toISOString(),
-        reason: alert.reason,
-      })
-      return updated!
-    }
-
-    const now = new Date().toISOString()
-    return SecurityAlertRepository.createAlert({
-      ...alert,
-      count: 1,
-      firstOccurrence: now,
-      lastOccurrence: now,
-    })
   }
 
   async checkAndCreateAlerts(
