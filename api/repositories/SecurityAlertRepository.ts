@@ -83,6 +83,30 @@ class SecurityAlertRepositoryImpl extends JsonRepository<SecurityAlert> {
     return null
   }
 
+  async findAggregatedAlert(
+    type: SecurityAlert['type'],
+    userId: string | undefined,
+    ip: string | undefined
+  ): Promise<SecurityAlert | null> {
+    const now = new Date().toISOString()
+    const existing = await this.findOne((a) => {
+      if (a.type !== type) return false
+      if (a.status === 'resolved') return false
+      if (a.userId !== userId) return false
+      if (a.ip !== ip) return false
+      return true
+    })
+
+    if (existing) {
+      return this.update(existing.id, {
+        count: existing.count + 1,
+        lastOccurrence: now,
+      })
+    }
+
+    return null
+  }
+
   async createAlert(data: Omit<SecurityAlert, 'id'>): Promise<SecurityAlert> {
     const id = `alert_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     const alert: SecurityAlert = {

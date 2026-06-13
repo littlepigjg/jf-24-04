@@ -8,7 +8,13 @@ class PolicyRepositoryImpl extends JsonRepository<AccessPolicy> {
 
   async findEnabled(): Promise<AccessPolicy[]> {
     const all = await this.getAll()
-    return all.filter((p) => p.isEnabled).sort((a, b) => b.priority - a.priority)
+    return all
+      .filter((p) => p.isEnabled)
+      .sort((a, b) => {
+        const priorityDiff = b.priority - a.priority
+        if (priorityDiff !== 0) return priorityDiff
+        return a.id.localeCompare(b.id)
+      })
   }
 
   async findBySubjectType(subjectType: 'user' | 'role'): Promise<AccessPolicy[]> {

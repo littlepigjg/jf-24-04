@@ -1,7 +1,7 @@
 import { AuditLogRepository } from '../repositories/AuditLogRepository.js'
 import { SecurityAlertRepository } from '../repositories/SecurityAlertRepository.js'
 import { UserRepository } from '../repositories/UserRepository.js'
-import type { PermissionAction, AuditLog } from '../../shared/types.js'
+import type { PermissionAction, AuditLog, SecurityAlert } from '../../shared/types.js'
 
 const SUSPICIOUS_ATTEMPTS_THRESHOLD = 5
 const SUSPICIOUS_WINDOW_MS = 5 * 60 * 1000
@@ -39,6 +39,35 @@ class AuditServiceImpl {
     })
   }
 
+  private async upsertAggregatedAlert(
+    alert: Omit<SecurityAlert, 'id' | 'count' | 'firstOccurrence' | 'lastOccurrence'> & {
+      count?: number
+    }
+  ): Promise<SecurityAlert> {
+    const existing = await SecurityAlertRepository.findAggregatedAlert(
+      alert.type,
+      alert.userId,
+      alert.ip
+    )
+
+    if (existing) {
+      const updated = await SecurityAlertRepository.update(existing.id, {
+        count: existing.count + 1,
+        lastOccurrence: new Date().toISOString(),
+        reason: alert.reason,
+      })
+      return updated!
+    }
+
+    const now = new Date().toISOString()
+    return SecurityAlertRepository.createAlert({
+      ...alert,
+      count: 1,
+      firstOccurrence: now,
+      lastOccurrence: now,
+    })
+  }
+
   async checkAndCreateAlerts(
     userId: string,
     action: PermissionAction,
@@ -49,6 +78,8 @@ class AuditServiceImpl {
   ): Promise<void> {
     const user = await UserRepository.getById(userId)
     const username = user?.username || 'unknown'
+    const ip = context?.ip
+    const userAgent = context?.userAgent
 
     const suspiciousLogs = await AuditLogRepository.findSuspiciousActivity(
       userId,
@@ -57,62 +88,34 @@ class AuditServiceImpl {
     )
 
     if (suspiciousLogs.length >= SUSPICIOUS_ATTEMPTS_THRESHOLD) {
-      const existing = await SecurityAlertRepository.findOrCreateAlert(
-        'suspicious_activity',
-        userId,
-        context?.ip,
-        action,
-        resourceType,
-        resourceId
-      )
-
-      if (!existing) {
-        await SecurityAlertRepository.createAlert({
-          type: 'suspicious_activity',
-          severity: 'high',
-          status: 'new',
-          userId,
-          username,
-          ip: context?.ip,
-          userAgent: context?.userAgent,
-          resourceType,
-          resourceId,
-          action,
-          reason: `Multiple denied access attempts detected: ${suspiciousLogs.length} attempts in 5 minutes`,
-          count: 1,
-          firstOccurrence: new Date().toISOString(),
-          lastOccurrence: new Date().toISOString(),
-        })
-      }
-    }
-
-    const existingDenied = await SecurityAlertRepository.findOrCreateAlert(
-      'permission_denied',
-      userId,
-      context?.ip,
-      action,
-      resourceType,
-      resourceId
-    )
-
-    if (!existingDenied) {
-      await SecurityAlertRepository.createAlert({
-        type: 'permission_denied',
-        severity: 'medium',
+      await this.upsertAggregatedAlert({
+        type: 'suspicious_activity',
+        severity: 'high',
         status: 'new',
         userId,
         username,
-        ip: context?.ip,
-        userAgent: context?.userAgent,
+        ip,
+        userAgent,
         resourceType,
         resourceId,
         action,
-        reason,
-        count: 1,
-        firstOccurrence: new Date().toISOString(),
-        lastOccurrence: new Date().toISOString(),
+        reason: `Multiple denied access attempts detected: ${suspiciousLogs.length} attempts in 5 minutes. Latest reason: ${reason}`,
       })
     }
+
+    await this.upsertAggregatedAlert({
+      type: 'permission_denied',
+      severity: 'medium',
+      status: 'new',
+      userId,
+      username,
+      ip,
+      userAgent,
+      resourceType,
+      resourceId,
+      action,
+      reason,
+    })
   }
 }
 

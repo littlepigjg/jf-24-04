@@ -8,6 +8,12 @@ interface PolicyMatchResult {
   reason: string
 }
 
+function pickTopPolicies(policies: AccessPolicy[], priority: number): AccessPolicy[] {
+  return policies
+    .filter((p) => p.priority === priority)
+    .sort((a, b) => a.id.localeCompare(b.id))
+}
+
 class PolicyEvaluatorImpl {
   private matchResource(
     policy: AccessPolicy,
@@ -111,21 +117,30 @@ class PolicyEvaluatorImpl {
         ? Math.max(...matchedDeny.map((p) => p.priority))
         : -Infinity
 
-    if (matchedDeny.length > 0 && topDenyPriority >= topAllowPriority) {
-      const denyPolicy = matchedDeny.find((p) => p.priority === topDenyPriority)!
+    if (topDenyPriority > topAllowPriority) {
+      const denyPolicy = pickTopPolicies(matchedDeny, topDenyPriority)[0]
       return {
         allow: false,
         matchedPolicy: denyPolicy,
-        reason: `Denied by policy: ${denyPolicy.name} (deny priority)`,
+        reason: `Denied by policy: ${denyPolicy.name} (priority ${topDenyPriority} > allow priority ${topAllowPriority})`,
+      }
+    }
+
+    if (topDenyPriority === topAllowPriority && matchedDeny.length > 0) {
+      const denyPolicy = pickTopPolicies(matchedDeny, topDenyPriority)[0]
+      return {
+        allow: false,
+        matchedPolicy: denyPolicy,
+        reason: `Denied by policy: ${denyPolicy.name} (deny-override on same priority ${topDenyPriority})`,
       }
     }
 
     if (matchedAllow.length > 0) {
-      const allowPolicy = matchedAllow.find((p) => p.priority === topAllowPriority)!
+      const allowPolicy = pickTopPolicies(matchedAllow, topAllowPriority)[0]
       return {
         allow: true,
         matchedPolicy: allowPolicy,
-        reason: `Allowed by policy: ${allowPolicy.name}`,
+        reason: `Allowed by policy: ${allowPolicy.name} (priority ${topAllowPriority})`,
       }
     }
 

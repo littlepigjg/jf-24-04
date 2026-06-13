@@ -16,7 +16,10 @@
         "qrcode:stats"
       ],
       "subjectType": "role",
-      "subjectIds": ["role_admin", "role_super_admin"],
+      "subjectIds": [
+        "role_admin",
+        "role_super_admin"
+      ],
       "resourceType": "all",
       "isEnabled": true,
       "createdAt": "2024-01-01T00:00:00.000Z",
@@ -36,7 +39,10 @@
         "qrcode:stats"
       ],
       "subjectType": "role",
-      "subjectIds": ["role_editor", "role_senior_editor"],
+      "subjectIds": [
+        "role_editor",
+        "role_senior_editor"
+      ],
       "resourceType": "qrcode",
       "isEnabled": true,
       "createdAt": "2024-01-01T00:00:00.000Z",
@@ -48,9 +54,14 @@
       "description": "授予高级编辑员删除二维码的权限",
       "priority": 95,
       "effect": "allow",
-      "actions": ["qrcode:delete", "batch:manage"],
+      "actions": [
+        "qrcode:delete",
+        "batch:manage"
+      ],
       "subjectType": "role",
-      "subjectIds": ["role_senior_editor"],
+      "subjectIds": [
+        "role_senior_editor"
+      ],
       "resourceType": "qrcode",
       "isEnabled": true,
       "createdAt": "2024-01-01T00:00:00.000Z",
@@ -62,9 +73,13 @@
       "description": "授予查看者角色只读访问二维码的权限",
       "priority": 80,
       "effect": "allow",
-      "actions": ["qrcode:view"],
+      "actions": [
+        "qrcode:view"
+      ],
       "subjectType": "role",
-      "subjectIds": ["role_viewer"],
+      "subjectIds": [
+        "role_viewer"
+      ],
       "resourceType": "qrcode",
       "isEnabled": true,
       "createdAt": "2024-01-01T00:00:00.000Z",
@@ -76,9 +91,16 @@
       "description": "授予审计员查看审计日志和安全告警的权限",
       "priority": 85,
       "effect": "allow",
-      "actions": ["qrcode:view", "qrcode:stats", "audit:view", "alert:manage"],
+      "actions": [
+        "qrcode:view",
+        "qrcode:stats",
+        "audit:view",
+        "alert:manage"
+      ],
       "subjectType": "role",
-      "subjectIds": ["role_auditor"],
+      "subjectIds": [
+        "role_auditor"
+      ],
       "resourceType": "all",
       "isEnabled": true,
       "createdAt": "2024-01-01T00:00:00.000Z",
@@ -90,9 +112,14 @@
       "description": "高优先级拒绝策略，禁止任何人删除标记为敏感的二维码（示例策略）",
       "priority": 200,
       "effect": "deny",
-      "actions": ["qrcode:delete"],
+      "actions": [
+        "qrcode:delete"
+      ],
       "subjectType": "role",
-      "subjectIds": ["role_editor", "role_viewer"],
+      "subjectIds": [
+        "role_editor",
+        "role_viewer"
+      ],
       "resourceType": "qrcode",
       "isEnabled": false,
       "createdAt": "2024-01-01T00:00:00.000Z",
@@ -104,15 +131,25 @@
       "description": "限制查看者只能在工作时间访问（示例策略，默认禁用）",
       "priority": 70,
       "effect": "allow",
-      "actions": ["qrcode:view"],
+      "actions": [
+        "qrcode:view"
+      ],
       "subjectType": "role",
-      "subjectIds": ["role_viewer"],
+      "subjectIds": [
+        "role_viewer"
+      ],
       "resourceType": "qrcode",
       "conditions": {
         "timeRestriction": {
           "startTime": "09:00",
           "endTime": "18:00",
-          "daysOfWeek": [1, 2, 3, 4, 5]
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
         }
       },
       "isEnabled": false,

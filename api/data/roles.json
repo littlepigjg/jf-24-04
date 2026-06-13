@@ -36,22 +36,6 @@
       "updatedAt": "2024-01-01T00:00:00.000Z"
     },
     {
-      "id": "role_editor",
-      "name": "编辑员",
-      "code": "editor",
-      "description": "可以创建和编辑二维码",
-      "permissions": [
-        "qrcode:view",
-        "qrcode:create",
-        "qrcode:edit",
-        "qrcode:export",
-        "qrcode:stats"
-      ],
-      "isSystem": true,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
-    },
-    {
       "id": "role_viewer",
       "name": "查看者",
       "code": "viewer",
@@ -59,6 +43,22 @@
       "parentRoleId": null,
       "permissions": [
         "qrcode:view"
+      ],
+      "isSystem": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "role_editor",
+      "name": "编辑员",
+      "code": "editor",
+      "description": "可以创建和编辑二维码（继承查看者）",
+      "parentRoleId": "role_viewer",
+      "permissions": [
+        "qrcode:create",
+        "qrcode:edit",
+        "qrcode:export",
+        "qrcode:stats"
       ],
       "isSystem": true,
       "createdAt": "2024-01-01T00:00:00.000Z",
@@ -79,12 +79,26 @@
       "updatedAt": "2024-01-01T00:00:00.000Z"
     },
     {
+      "id": "role_lead_editor",
+      "name": "主编",
+      "code": "lead_editor",
+      "description": "继承高级编辑员，额外拥有策略管理权限（三层继承测试）",
+      "parentRoleId": "role_senior_editor",
+      "permissions": [
+        "policy:manage",
+        "export:manage"
+      ],
+      "isSystem": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
       "id": "role_auditor",
       "name": "审计员",
       "code": "auditor",
       "description": "可以查看审计日志和安全告警",
+      "parentRoleId": "role_viewer",
       "permissions": [
-        "qrcode:view",
         "qrcode:stats",
         "audit:view",
         "alert:manage"

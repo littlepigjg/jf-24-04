@@ -14,18 +14,6 @@
       "updatedAt": "2024-01-01T00:00:00.000Z"
     },
     {
-      "id": "user_editor",
-      "username": "editor",
-      "email": "editor@example.com",
-      "passwordHash": "editor123",
-      "displayName": "内容编辑",
-      "roleIds": ["role_editor"],
-      "isActive": true,
-      "isSuperAdmin": false,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
-    },
-    {
       "id": "user_viewer",
       "username": "viewer",
       "email": "viewer@example.com",
@@ -38,12 +26,36 @@
       "updatedAt": "2024-01-01T00:00:00.000Z"
     },
     {
+      "id": "user_editor",
+      "username": "editor",
+      "email": "editor@example.com",
+      "passwordHash": "editor123",
+      "displayName": "内容编辑",
+      "roleIds": ["role_editor"],
+      "isActive": true,
+      "isSuperAdmin": false,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
       "id": "user_senior_editor",
       "username": "senior_editor",
       "email": "senior@example.com",
       "passwordHash": "senior123",
       "displayName": "高级编辑",
       "roleIds": ["role_senior_editor"],
+      "isActive": true,
+      "isSuperAdmin": false,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "user_lead_editor",
+      "username": "lead_editor",
+      "email": "lead@example.com",
+      "passwordHash": "lead123",
+      "displayName": "主编（三层继承测试）",
+      "roleIds": ["role_lead_editor"],
       "isActive": true,
       "isSuperAdmin": false,
       "createdAt": "2024-01-01T00:00:00.000Z",
